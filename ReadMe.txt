@@ -10,8 +10,7 @@ Private IPs:https://datatracker.ietf.org/doc/html/rfc1918
 SpinControl (Up/Down Control):
 https://learn.microsoft.com/en-us/windows/win32/controls/up-down-controls
 
-
-TODO:
+DONE:
 1. Узнать IP-адрес на телефоне;
 2. Изменения маски должны отображаться на префиксе;
 3. Изменения префикса должны отображаться на максе;

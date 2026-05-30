@@ -32,6 +32,7 @@ BOOL CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_INITDIALOG:
 		SetFocus(GetDlgItem(hwnd, IDC_IPADDRESS));
 		SendMessage(GetDlgItem(hwnd, IDC_SPIN_PREFIX), UDM_SETRANGE, 0, MAKEWORD(30, 0));
+		SendMessage(GetDlgItem(hwnd, IDC_EDIT_PREFIX), EM_SETLIMITTEXT, 2, 0);
 		break;
 	case WM_COMMAND:
 	{
@@ -71,11 +72,16 @@ BOOL CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case IDC_EDIT_PREFIX:
 			SendMessage(hEditPrefix, WM_GETTEXT, 3, (LPARAM)&szPrefix);
 			dwPrefix = atoi(szPrefix);
+			if (dwPrefix > 30)
+			{
+				dwPrefix = 30;
+				sprintf(szPrefix, "%i", dwPrefix);
+				SendMessage(hEditPrefix, WM_SETTEXT, 0, (LPARAM)szPrefix);
+			}
 			dwIPmask = UINT_MAX;
 			for (int i = 0; i < 32 - dwPrefix; i++)dwIPmask <<= 1;
 			SendMessage(hIPmask, IPM_SETADDRESS, 0, dwIPmask);
 			//break;
-		
 
 		case IDOK:
 		{
@@ -94,7 +100,7 @@ BOOL CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			sprintf
 			(
-				szInfo,"%s;\n%s;\n%s;\n%s;\n",
+				szInfo, "%s;\n%s;\n%s;\n%s;\n",
 				FormatAddress(szNetworkAddress, "Адрес сети:\t\t\t", dwNetworkAddress),
 				FormatAddress(szBroadcastAddress, "Широковещательный адрес:\t", dwBroadcastAddress),
 				FormatCount(szIPsCount, "Количество IP-адресов:", dwIPsCount),
@@ -102,7 +108,7 @@ BOOL CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			);
 			SendMessage(GetDlgItem(hwnd, IDC_STATIC_INFO), WM_SETTEXT, 0, (LPARAM)szInfo);
 		}
-			break;
+		break;
 		case IDCANCEL:EndDialog(hwnd, 0);
 		case IDC_BUTTON_RESET:
 			SendMessage(hIPaddress, IPM_CLEARADDRESS, 0, 0);
@@ -135,7 +141,7 @@ CHAR* FormatAddress(CHAR szBuffer[], CONST CHAR szMessage[], DWORD dwIPaddress)
 	sprintf
 	(
 		szBuffer, "%s%i.%i.%i.%i",
-		szMessage, 
+		szMessage,
 		FIRST_IPADDRESS(dwIPaddress),
 		SECOND_IPADDRESS(dwIPaddress),
 		THIRD_IPADDRESS(dwIPaddress),
@@ -145,6 +151,6 @@ CHAR* FormatAddress(CHAR szBuffer[], CONST CHAR szMessage[], DWORD dwIPaddress)
 }
 CHAR* FormatCount(CHAR szBuffer[], CONST CHAR szMessage[], DWORD dwCount)
 {
-	sprintf(szBuffer, "%s\t\t%i",szMessage, dwCount);
+	sprintf(szBuffer, "%s\t\t%i", szMessage, dwCount);
 	return szBuffer;
 }
