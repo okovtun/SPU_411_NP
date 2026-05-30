@@ -1,6 +1,8 @@
 //IPcalculator
+#define _CRT_SECURE_NO_WARNINGS
 #include<Windows.h>
 #include<CommCtrl.h>
+#include<cstdio>
 #include"resource.h"
 
 /*
@@ -26,6 +28,7 @@ BOOL CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	switch (uMsg)
 	{
 	case WM_INITDIALOG:
+		SetFocus(GetDlgItem(hwnd, IDC_IPADDRESS));
 		SendMessage(GetDlgItem(hwnd, IDC_SPIN_PREFIX), UDM_SETRANGE, 0, MAKEWORD(32, 0));
 		break;
 	case WM_COMMAND:
@@ -56,6 +59,10 @@ BOOL CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			{
 				SendMessage(hIPmask, IPM_GETADDRESS, 0, (LPARAM)&dwIPmask);
 				//TODO: Set prefix, depend on Mask;
+				for (dwPrefix = 0; dwIPmask; dwPrefix++)dwIPmask <<= 1;
+				CHAR szPrefix[3] = {};
+				sprintf(szPrefix, "%i", dwPrefix);
+				SendMessage(hEditPrefix, WM_SETTEXT, 0, (LPARAM)szPrefix);
 			}
 			break;
 		case IDOK:
