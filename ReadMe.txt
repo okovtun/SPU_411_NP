@@ -10,6 +10,10 @@ Private IPs:https://datatracker.ietf.org/doc/html/rfc1918
 SpinControl (Up/Down Control):
 https://learn.microsoft.com/en-us/windows/win32/controls/up-down-controls
 
+TODO:
+1. Обеспечить возможность клиенту вводить сообщения с клавиатуры;
+2. Клиент должен отключаться от Сервера при помощи команды 'exit';
+
 DONE:
 1. Узнать IP-адрес на телефоне;
 2. Изменения маски должны отображаться на префиксе;
