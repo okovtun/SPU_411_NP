@@ -14,6 +14,14 @@ using namespace std;
 #pragma comment(lib, "WS2_32.lib")
 
 #define MTU		1500
+#define MAX_CONNECTIONS		3
+
+SOCKET clients[MAX_CONNECTIONS] = {};
+DWORD dwThreadIDs[MAX_CONNECTIONS] = {};
+HANDLE hThreads[MAX_CONNECTIONS] = {};
+INT g_ActiveClients = 0;
+
+VOID ClientHandle(SOCKET client_socket);
 
 void main()
 {
@@ -65,7 +73,7 @@ void main()
 	}
 
 	//5) Запускаем прослушивание:
-	if (listen(listen_socket, 1) == SOCKET_ERROR)	//1 - максимальное количество подключений
+	if (listen(listen_socket, MAX_CONNECTIONS) == SOCKET_ERROR)	//1 - максимальное количество подключений
 	{
 		cout << "Listen failed with error " << WSAGetLastError() << endl;
 		closesocket(listen_socket);
@@ -74,13 +82,76 @@ void main()
 	}
 
 	//6) Обработка входящий соединений:
-	SOCKADDR_IN client_addr;
-	int client_addrlen = sizeof(client_addr);
-	SOCKET client_socket = accept(listen_socket, (SOCKADDR*)&client_addr, &client_addrlen);	//Ожидает запрос от клиента
-	if (client_socket == INVALID_SOCKET)cout << "Accept failed with error " << WSAGetLastError() << endl;
-	cout << "CONNECTED ON " << inet_ntoa(client_addr.sin_addr) << ":" << ntohs(client_addr.sin_port) << endl;
+	do
+	{
+		SOCKADDR_IN client_addr;
+		int client_addrlen = sizeof(client_addr);
+		SOCKET client_socket = accept(listen_socket, (SOCKADDR*)&client_addr, &client_addrlen);	//Ожидает запрос от клиента
+		if (client_socket == INVALID_SOCKET)cout << "Accept failed with error " << WSAGetLastError() << endl;
+		cout << "CONNECTED ON " << inet_ntoa(client_addr.sin_addr) << ":" << ntohs(client_addr.sin_port) << endl;
 
-	//7) Получение и отправка данных:
+		//7) Получение и отправка данных:
+		if (g_ActiveClients < MAX_CONNECTIONS)
+		{
+			//ClientHandle(client_socket);
+			clients[g_ActiveClients] = client_socket;
+			hThreads[g_ActiveClients] = CreateThread
+			(
+				NULL,	//Атрибуты безопасности
+				NULL,	//Stack size. Если 0, то все потоки будут использовать стек своего родительского процесса
+				(LPTHREAD_START_ROUTINE)ClientHandle,	//Указатель на функцию, которая будет выполняться в потоке
+				(LPVOID)client_socket,	//Параметр, передаваемый в функцию. Функция, запускаемая в потоке может принимать не более одного параметра.
+								//Если функция, запускаемая в потоке не принимает параметров, то на это место передается 'NULL';
+				NULL,			//Флаги создания потока
+				&dwThreadIDs[g_ActiveClients]
+			);
+			g_ActiveClients++;
+		}
+		else
+		{
+			CHAR szDeclineMessage[] = "Подключение невозможно, поскольку все места заняты, попробуйте позже";
+			iResult = send(client_socket, szDeclineMessage, strlen(szDeclineMessage), 0);
+			if (iResult == SOCKET_ERROR)cout << "send Error: " << WSAGetLastError() << endl;
+			iResult = shutdown(client_socket, SD_BOTH);
+			if (iResult == SOCKET_ERROR)cout << "shutdown Error: " << WSAGetLastError() << endl;
+		}
+	} while (true);
+
+
+	//9) Release resourses:
+	closesocket(listen_socket);
+	WSACleanup();
+}
+INT GetClientIndex(DWORD dwThreadID)
+{
+	for (INT i = 0; i < g_ActiveClients; i++)
+	{
+		if (dwThreadIDs[i] == dwThreadID)return i;
+	}
+}
+VOID Shift(INT index)
+{
+	for (INT i = index; i < g_ActiveClients; i++)
+	{
+		clients[i] = clients[i + 1];
+		dwThreadIDs[i] = dwThreadIDs[i + 1];
+		hThreads[i] = hThreads[i + 1];
+	}
+	clients[MAX_CONNECTIONS - 1] = NULL;
+	dwThreadIDs[MAX_CONNECTIONS - 1] = NULL;
+	hThreads[MAX_CONNECTIONS - 1] = NULL;
+	g_ActiveClients--;
+}
+VOID Broadcast(CHAR sz_message[])
+{
+	for (INT i = 0; i < g_ActiveClients; i++)
+	{
+		send(clients[i], sz_message, strlen(sz_message), 0);
+	}
+}
+VOID ClientHandle(SOCKET client_socket)
+{
+	INT iResult = 0;
 	CHAR send_buffer[MTU] = "Hello Client!!!";
 	CHAR recv_buffer[MTU] = {};
 
@@ -91,13 +162,14 @@ void main()
 		if (iResult > 0)
 		{
 			cout << iResult << " Bytes received, Message: " << recv_buffer << endl;
-			INT iSendResult = send(client_socket, recv_buffer, strlen(send_buffer), 0);
+			Broadcast(recv_buffer);
+			/*INT iSendResult = send(client_socket, recv_buffer, strlen(send_buffer), 0);
 			if (iSendResult == SOCKET_ERROR)
 			{
 				cout << "Send failed with error " << WSAGetLastError() << endl;
 				closesocket(client_socket);
 			}
-			else cout << iSendResult << " Bytes send" << endl;
+			else cout << iSendResult << " Bytes send" << endl;*/
 		}
 		else if (iResult == 0) cout << "Nothing received from client" << endl;
 		else cout << "Receive failed with error " << WSAGetLastError() << endl;
@@ -107,8 +179,6 @@ void main()
 	iResult = shutdown(client_socket, SD_BOTH);
 	if (iResult == SOCKET_ERROR)cout << "shutdown failed with error " << WSAGetLastError() << endl;
 	closesocket(client_socket);
-
-	//9) Release resourses:
-	closesocket(listen_socket);
-	WSACleanup();
+	Shift(GetClientIndex(GetCurrentThreadId()));
+	ExitThread(0);
 }
