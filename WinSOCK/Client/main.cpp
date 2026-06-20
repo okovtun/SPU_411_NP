@@ -7,14 +7,15 @@
 #include<WinSock2.h>
 #include<WS2tcpip.h>
 #include<iphlpapi.h>
+#include<FormatLastError.h>
 using namespace std;
 
 #pragma comment(lib, "WS2_32.lib")	//подгружает реализации фукций из статической библиотеки для <WS2TCPIP.h>
+#pragma comment(lib, "FormatLastError.lib")
 
 #define MTU		1500
 
 VOID Receive(SOCKET connect_socket);
-CHAR* FormatLastError(CHAR szBuffer[], DWORD dwError);
 
 void main()
 {
@@ -22,7 +23,7 @@ void main()
 	INT iResult = 0;	//эта переменная нужна для отслеживания результатов выполнения функций.
 	DWORD dwError = 0;
 	CHAR szError[USHRT_MAX+1] = {};
-
+	
 	//1) Инициализация WinSOCK:
 	WSADATA wsaData;
 	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);	//MAKEWORD(2,2) - выбираем версию WinSOCK
@@ -140,23 +141,4 @@ VOID Receive(SOCKET connect_socket)
 		else if (iResult == 0) cout << "Nothing received from Server" << endl;
 		else cout << "Receive failed with error: " << WSAGetLastError() << endl;
 	} while (true);
-}
-
-CHAR* FormatLastError(CHAR szBuffer[], DWORD dwError)
-{
-	LPSTR lpError;
-	FormatMessage
-	(
-		FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-		NULL,
-		dwError,
-		MAKELANGID(LANG_NEUTRAL, LANG_SYSTEM_DEFAULT),
-		(LPSTR)&lpError,
-		NULL,
-		NULL
-	);
-	//cout << lpError << endl;
-	sprintf(szBuffer, "Error %i:%s", dwError, lpError);
-	LocalFree(lpError);
-	return szBuffer;
 }
