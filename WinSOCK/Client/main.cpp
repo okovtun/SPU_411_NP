@@ -90,7 +90,7 @@ void main()
 		else cout << "Sent " << iResult << " Bytes" << endl;
 
 
-		cout << "Введите сообщение: ";
+		//cout << "Введите сообщение: ";
 		SetConsoleCP(1251);
 		cin.getline(send_buffer, MTU);
 		SetConsoleCP(866);
