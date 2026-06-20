@@ -14,11 +14,15 @@ using namespace std;
 #define MTU		1500
 
 VOID Receive(SOCKET connect_socket);
+CHAR* FormatLastError(CHAR szBuffer[], DWORD dwError);
 
 void main()
 {
 	setlocale(LC_ALL, "");
 	INT iResult = 0;	//эта переменная нужна для отслеживания результатов выполнения функций.
+	DWORD dwError = 0;
+	CHAR szError[USHRT_MAX+1] = {};
+
 	//1) Инициализация WinSOCK:
 	WSADATA wsaData;
 	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);	//MAKEWORD(2,2) - выбираем версию WinSOCK
@@ -46,9 +50,11 @@ void main()
 
 	//3) Создаем сокет для подключения к Серверу:
 	SOCKET connect_socket = socket(target->ai_family, target->ai_socktype, target->ai_protocol);
+	dwError = WSAGetLastError();
 	if (connect_socket == INVALID_SOCKET)
 	{
 		cout << "SOCKET creation failed with error: " << WSAGetLastError() << endl;
+		cout << FormatLastError(szError, dwError) << endl;
 		freeaddrinfo(target);
 		WSACleanup();
 		return;
@@ -56,9 +62,24 @@ void main()
 
 	//4) Подключаемся к Серверу:
 	iResult = connect(connect_socket, target->ai_addr, target->ai_addrlen);
+	dwError = WSAGetLastError();
 	if (iResult != 0)
 	{
-		cout << "Connection failed with error: " << WSAGetLastError() << endl;
+		cout << "Connection failed with error: " << dwError << endl;
+		cout << FormatLastError(szError, dwError) << endl;
+		/*LPSTR lpError;
+		FormatMessage
+		(
+			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL,
+			dwError,
+			MAKELANGID(LANG_NEUTRAL, LANG_SYSTEM_DEFAULT),
+			(LPSTR)&lpError,
+			NULL,
+			NULL
+		);
+		cout << lpError << endl;
+		LocalFree(lpError);*/
 		closesocket(connect_socket);
 		freeaddrinfo(target);
 		WSACleanup();
@@ -80,9 +101,11 @@ void main()
 	do
 	{
 		iResult = send(connect_socket, send_buffer, strlen(send_buffer), NULL);
+		dwError = WSAGetLastError();
 		if (iResult == SOCKET_ERROR)
 		{
 			cout << "Send failed with error: " << WSAGetLastError() << endl;
+			cout << FormatLastError(szError, dwError) << endl;
 			closesocket(connect_socket);
 			WSACleanup();
 			return;
@@ -98,7 +121,7 @@ void main()
 
 	//7) Разрываем TCP-соединение:
 	iResult = shutdown(connect_socket, SD_BOTH);
-	if (iResult != 0)cout << "shutdown failed with error " << WSAGetLastError() << endl;
+	if (iResult != 0)cout << FormatLastError(szError, WSAGetLastError()) << endl;;;;;;;;;;//cout << "shutdown failed with error " << WSAGetLastError() << endl;
 
 	//?) Освобождаем ресурсы WinSOCK:
 	closesocket(connect_socket);
@@ -117,4 +140,23 @@ VOID Receive(SOCKET connect_socket)
 		else if (iResult == 0) cout << "Nothing received from Server" << endl;
 		else cout << "Receive failed with error: " << WSAGetLastError() << endl;
 	} while (true);
+}
+
+CHAR* FormatLastError(CHAR szBuffer[], DWORD dwError)
+{
+	LPSTR lpError;
+	FormatMessage
+	(
+		FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		NULL,
+		dwError,
+		MAKELANGID(LANG_NEUTRAL, LANG_SYSTEM_DEFAULT),
+		(LPSTR)&lpError,
+		NULL,
+		NULL
+	);
+	//cout << lpError << endl;
+	sprintf(szBuffer, "Error %i:%s", dwError, lpError);
+	LocalFree(lpError);
+	return szBuffer;
 }
