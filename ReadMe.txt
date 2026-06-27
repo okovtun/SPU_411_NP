@@ -10,6 +10,19 @@ Private IPs:https://datatracker.ietf.org/doc/html/rfc1918
 SpinControl (Up/Down Control):
 https://learn.microsoft.com/en-us/windows/win32/controls/up-down-controls
 
+DockerVM:
+https://github.com/dockur/windows
+
+Process - это задача (программа) в сталии выполнения;
+Thread - это последовательность команд Центральному Процессору;
+https://learn.microsoft.com/en-us/sysinternals/downloads/process-explorer
+Mutex:
+https://en.cppreference.com/cpp/language/raii
+https://www.bogotobogo.com/cplusplus/files/CplusplusConcurrencyInAction_PracticalMultithreading.pdf
+
+TODO:
+1. Попробовать потоки и мьютексы на C#;
+
 TODO:
 1. Каждый клиент должен видеть IP-адрес и порт отправителя сообщения;	DONE
 2. Сервер либо клиента запустить на виртуальной машиене и проверить их взаимодействие;
